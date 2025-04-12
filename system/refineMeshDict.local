@@ -1,0 +1,42 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2.0.0                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      refineMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// The name of the cellSet to refine
+set             local;
+
+// The coordinate system to use when refining
+coordinateSystem global;
+
+// Global coordinate system coefficients
+globalCoeffs
+{
+    tan1            ( 1 0 0 );  // X-direction
+    tan2            ( 0 1 0 );  // Y-direction
+    normal          ( 0 0 1 );  // Z-direction
+}
+
+// Directions in which to refine cells
+directions      ( tan1 tan2 normal );
+
+// Whether to use hex topology - almost always yes for structured meshes
+useHexTopology  yes;
+
+// Whether to use geometric cuts for refinement - usually no
+geometricCut    no;
+
+// Whether to write the refined mesh - usually no
+writeMesh       no;

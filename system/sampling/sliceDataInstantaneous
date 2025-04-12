@@ -1,0 +1,106 @@
+      sliceDataInstantaneous
+      {
+          type                 surfaces;
+          functionObjectLibs   ("libsampling.so");
+          enabled              true;
+          interpolationScheme  cell;
+          outputControl        adjustableTime;
+          writeInterval        60;
+          surfaceFormat        vtk;
+          fields
+          (
+              U
+          );
+          surfaces
+          (
+              slice_horizontal
+              {
+                  type         plane;
+                  basePoint    (1500.01 900.01 90.01);
+                  normalVector (0 0 1);
+                  triangulate  false;
+              }
+              slice_vertical_x400
+              {
+                  type         plane;
+                  basePoint    (400.01 900.01 90.01);
+                  normalVector (1 0 0);
+                  triangulate  false;
+              }			              
+              slice_vertical_x600
+              {
+                  type         plane;
+                  basePoint    (600.01 900.01 90.01);
+                  normalVector (1 0 0);
+                  triangulate  false;
+              }		
+              slice_vertical_x1000
+              {
+                  type         plane;
+                  basePoint    (1000.01 900.01 90.01);
+                  normalVector (1 0 0);
+                  triangulate  false;
+              }			              
+              slice_vertical_x1200
+              {
+                  type         plane;
+                  basePoint    (1200.01 900.01 90.01);
+                  normalVector (1 0 0);
+                  triangulate  false;
+              }	
+              slice_vertical_x1600
+              {
+                  type         plane;
+                  basePoint    (1600.01 900.01 90.01);
+                  normalVector (1 0 0);
+                  triangulate  false;
+              }			
+              slice_vertical_x1800
+              {
+                  type         plane;
+                  basePoint    (1800.01 900.01 90.01);
+                  normalVector (1 0 0);
+                  triangulate  false;
+              }
+	      slice_vertical_x2000
+              {
+                  type         plane;
+                  basePoint    (2000.01 900.01 90.01);
+                  normalVector (1 0 0);
+                  triangulate  false;
+              }
+              slice_vertical_x2200
+              {
+                  type         plane;
+                  basePoint    (2200.01 900.01 90.01);
+                  normalVector (1 0 0);
+                  triangulate  false;
+              }
+	      slice_vertical_y400
+              {
+                  type         plane;
+                  // Bottom row of turbines
+                  basePoint    (1500.01 400.01 90.01);
+                  normalVector (0 1 0);
+                  triangulate  false;
+              }
+        
+              slice_vertical_y900
+              {
+                  type         plane;
+                  // Middle row of turbines (at ~779m)
+                  basePoint    (1500.01 900.01 90.01);
+                  normalVector (0 1 0);
+                  triangulate  false;
+              }
+        
+              slice_vertical_y1400
+              {
+                  type         plane;
+                  // Top row of turbines (at ~1150m)
+                  basePoint    (1500.01 1400.01 90.01);
+                  normalVector (0 1 0);
+                  triangulate  false;
+              }			  
+          );
+      }

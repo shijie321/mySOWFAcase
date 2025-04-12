@@ -1,0 +1,230 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2.4.0                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      topoSetDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// First refinement level: 200m boxes around each turbine
+
+actions
+(
+    // Turbine 0 - Row 1, Column 1
+    {
+        name    t0Box;
+        type    cellSet;
+        action  new;
+        source  boxToCell;
+        sourceInfo
+        {
+            box (304.8 1058.4 0.0) (504.8 1258.4 250.0);
+        }
+    }
+
+    // Turbine 1 - Row 1, Column 2
+    {
+        name    t1Box;
+        type    cellSet;
+        action  new;
+        source  boxToCell;
+        sourceInfo
+        {
+            box (302.4 679.2 0.0) (502.4 879.2 250.0);
+        }
+    }
+
+    // Turbine 2 - Row 1, Column 3
+    {
+        name    t2Box;
+        type    cellSet;
+        action  new;
+        source  boxToCell;
+        sourceInfo
+        {
+            box (300.0 300.0 0.0) (500.0 500.0 250.0);
+        }
+    }
+
+    // Turbine 3 - Row 2, Column 1
+    {
+        name    t3Box;
+        type    cellSet;
+        action  new;
+        source  boxToCell;
+        sourceInfo
+        {
+            box (936.8 1054.3 0.0) (1136.8 1254.3 250.0);
+        }
+    }
+
+    // Turbine 4 - Row 2, Column 2
+    {
+        name    t4Box;
+        type    cellSet;
+        action  new;
+        source  boxToCell;
+        sourceInfo
+        {
+            box (934.4 675.2 0.0) (1134.4 875.2 250.0);
+        }
+    }
+
+    // Turbine 5 - Row 2, Column 3
+    {
+        name    t5Box;
+        type    cellSet;
+        action  new;
+        source  boxToCell;
+        sourceInfo
+        {
+            box (932.0 296.0 0.0) (1132.0 496.0 250.0);
+        }
+    }
+
+    // Turbine 6 - Row 3, Column 1
+    {
+        name    t6Box;
+        type    cellSet;
+        action  new;
+        source  boxToCell;
+        sourceInfo
+        {
+            box (1568.8 1050.3 0.0) (1768.8 1250.3 250.0);
+        }
+    }
+
+    // Turbine 7 - Row 3, Column 2
+    {
+        name    t7Box;
+        type    cellSet;
+        action  new;
+        source  boxToCell;
+        sourceInfo
+        {
+            box (1566.3 671.1 0.0) (1766.3 871.1 250.0);
+        }
+    }
+
+    // Turbine 8 - Row 3, Column 3
+    {
+        name    t8Box;
+        type    cellSet;
+        action  new;
+        source  boxToCell;
+        sourceInfo
+        {
+            box (1563.9 291.9 0.0) (1763.9 491.9 250.0);
+        }
+    }
+
+    // Combine all boxes
+    {
+        name    local;
+        type    cellSet;
+        action  new;
+        source  cellToCell;
+        sourceInfo
+        {
+            set t0Box;
+        }
+    }
+
+    {
+        name    local;
+        type    cellSet;
+        action  add;
+        source  cellToCell;
+        sourceInfo
+        {
+            set t1Box;
+        }
+    }
+
+    {
+        name    local;
+        type    cellSet;
+        action  add;
+        source  cellToCell;
+        sourceInfo
+        {
+            set t2Box;
+        }
+    }
+
+    {
+        name    local;
+        type    cellSet;
+        action  add;
+        source  cellToCell;
+        sourceInfo
+        {
+            set t3Box;
+        }
+    }
+
+    {
+        name    local;
+        type    cellSet;
+        action  add;
+        source  cellToCell;
+        sourceInfo
+        {
+            set t4Box;
+        }
+    }
+
+    {
+        name    local;
+        type    cellSet;
+        action  add;
+        source  cellToCell;
+        sourceInfo
+        {
+            set t5Box;
+        }
+    }
+
+    {
+        name    local;
+        type    cellSet;
+        action  add;
+        source  cellToCell;
+        sourceInfo
+        {
+            set t6Box;
+        }
+    }
+
+    {
+        name    local;
+        type    cellSet;
+        action  add;
+        source  cellToCell;
+        sourceInfo
+        {
+            set t7Box;
+        }
+    }
+
+    {
+        name    local;
+        type    cellSet;
+        action  add;
+        source  cellToCell;
+        sourceInfo
+        {
+            set t8Box;
+        }
+    }
+);
+
+// ************************************************************************* //
