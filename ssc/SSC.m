@@ -13,9 +13,8 @@
 clc;clear;
 disp('Starting WFSim-based wind farm controller for SOWFA...');
 
-
 %% 1. Setup zeroMQ server
-zmqServer = zeromqObj('/home/shijiehuang/OpenFOAM/zeroMQ/jeromq/target/jeromq-0.4.3.jar',1729,7200,true);
+zmqServer = zeromqObj('/home/shijiehuang/OpenFOAM/zeroMQ/jeromq/target/jeromq-0.4.3.jar',4120,7200,true);
 disp('ZeroMQ server started on port 4120');
 
 %% 2. Initialize WFSim
@@ -31,7 +30,7 @@ modelOptions.Projection = 0;       % No projection
 modelOptions.exportLinearSol = 0;  % Don't export linear solution
 modelOptions.exportPressures = 0;  % Don't export pressures
 modelOptions.printConvergence = 0; % Don't print convergence
-modelOptions.conv_eps = 1e-6;      % Convergence threshold
+modelOptions.conv_eps = 1e-6;       % Convergence threshold
 modelOptions.max_it_dyn = 1;       % Max iterations
 
 % Initialize WFSim
@@ -44,23 +43,22 @@ nTurbs = Wp.turbine.N;
 % Initial control settings
 CT_prime = 2 * ones(nTurbs, 1); % starting from greedy control might cause singular behaviour
 yaw_angle = zeros(nTurbs, 1);
-
 % Control constraints
 CT_prime_min = 0.4 * ones(nTurbs, 1);
 CT_prime_max = 3.6 * ones(nTurbs, 1);
 yaw_min = -30 * ones(nTurbs, 1);
-yaw_max	= 30 *	ones(nTurbs, 1);
+yaw_max = 30 *  ones(nTurbs, 1);
 
 % Controller parameters
-alpha = 0.3;			% Learning rate for CT_prime (conservative for stability) 
-alpha_Phi = 3; 		% Learning rate for yaw
-mu = 0.00028;			% Regularization for CT_prime
-mu_Phi = 0.0001; 		% Regularization for yaw
+alpha = 0.3;                    % Learning rate for CT_prime (conservative for stability)
+alpha_Phi = 3;          % Learning rate for yaw
+mu = 0.00028;                   % Regularization for CT_prime
+mu_Phi = 0.0001;                % Regularization for yaw
 power_ref = nTurbs * 2e6;
 
 % For conversion to SOWFA inputs
-Kopt = 0.0255764; 		% Default NREL 5MW k-optimal
-aOptimal = 1/3;			% Betz-optimal axial induction factor
+Kopt = 0.0255764;               % Default NREL 5MW k-optimal
+aOptimal = 1/3;                 % Betz-optimal axial induction factor
 
 %% 4. Controller main loop
 counter = 0;
@@ -75,7 +73,7 @@ windSpeedHistory = [];
 % SOWFA time information
 currentTime = 0;
 lastOptimizationTime = 0;
-optimizationInterval = 45; 	% Optimize every 60 seconds (Without such an interval, you'd be optimizing based on measurements that don't yet reflect your last control action) 
+optimizationInterval = 45;    % Optimize every 60 seconds (Without such an interval, you'd be optimizing based on measurements that do$
 
 % Convergence tracking variables
 powerImprovements = [];
@@ -88,81 +86,92 @@ fprintf(logFile, 'Time: 0, Initial CT_prime: %f, Initial yaw: %f\n', CT_prime(1)
 fclose(logFile);
 
 disp('IMPORTANT: Using relationship calibrated with ALMAdvanced model');
-disp('K/K_opt = 24.6850*a^2 - 21.3041*a + 5.1988');
+disp('K/K_opt = 24.6850a^2 - 21.3041a + 5.1988');
 disp('Note that differences may exist when applied to ADM model');
 
 % Control mode (0: greedy baseline, 1: WFSim-based)
-% controlMode = 0;		% Start with greedy control as baseline
-% switchTime = 300; 		% Switch to WFSim-based control after 300 seconds
-% disp(['Starting with greedy control, switching to WFSim-based at ' num2str(switchTime) ' seconds']); 
-disp('Starting directly with WFSim-based control strategy');
+controlMode = 0;                % Start with greedy control as baseline
+switchTime = 300;               % Switch to WFSim-based control after 300 seconds
+disp(['Starting with greedy control, switching to WFSim-based at ' num2str(switchTime) ' seconds']);
+% disp('Starting directly with WFSim-based control strategy');
 while 1
     % 1. Receive information from SOWFA
     try
-        dataReceived = zmqServer.receive();
+           dataReceived = zmqServer.receive();
     catch e
-        disp(['Error receiving data: ' e.message]);
+    disp(['Error receiving data: ' e.message]);
         break;
     end
 
     currentTime  = dataReceived(1,1);
-    measurementVector = dataReceived(1,2:end); % [powerGenerator[1], torqueRotor[1], thrust[1], powerGenerator[2], torqueRotor[2], thrust[2]]
-    
+    measurementVector = dataReceived(1,2:end); % [powerGenerator[1], torqueRotor[1], thrust[1], powerGenerator[2], torqueRotor[2], thrus$
+
     % 2. Extract measurements: [genPower,rotSpeedF,azimuth,rotThrust,rotTorque,genTorque,nacYaw,bladePitch]
     generatorPowerArray = measurementVector(1:8:end);
     rotorSpeedArray     = measurementVector(2:8:end);
     azimuthAngleArray   = measurementVector(3:8:end);
     rotorThrustArray    = measurementVector(4:8:end);
     rotorTorqueArray    = measurementVector(5:8:end);
-    genTorqueArray      = measurementVector(6:8:end);
+    genTorqueArray    = measurementVector(6:8:end);
     nacelleYawArray     = measurementVector(7:8:end);
     bladePitchArray     = measurementVector(8:8:end);
-    
     % Store power data from SOWFA measurements
     powerHistory = [powerHistory; generatorPowerArray'];
 
     % Log the current measurements periodically (every 10 seconds to avoid excessive output)
     if mod(counter, 10) == 0
-	totalPower = sum(generatorPowerArray);
+        totalPower = sum(generatorPowerArray);
         disp(['Time: ' num2str(currentTime) ' s | Total power: ' num2str(totalPower/1e6) ' MW']);
-        
+
         % Log individual turbine data
         for i = 1:nTurbs
             disp(sprintf('Turbine %d: Power = %.2f MW, RPM = %.1f', ...
                  i-1, generatorPowerArray(i)/1e6, rotorSpeedArray(i)));
         end
 
-	% Append to log file
-	logFile = fopen('controller_log.txt','a');
-	fprintf(logFile, 'Time: %f, Total Power: %f MW\n', currentTime, totalPower/1e6);
-	fclose(logFile);
+    % Append to log file
+        logFile = fopen('controller_log.txt','a');
+        fprintf(logFile, 'Time: %f, Total Power: %f MW\n', currentTime, totalPower/1e6);
+        fclose(logFile);
+    end
+    % Switch control mode if appropriate time
+    if currentTime >= switchTime && controlMode == 0
+        controlMode = 1;
+        disp('**');
+        disp('SWITCHING TO WFSIM-BASED CONTROL');
+        disp('**');
+
+        % Log the switch
+        logFile = fopen('controller_log.txt', 'a');
+        fprintf(logFile, 'Time: %f, SWITCHING TO WFSIM-BASED CONTROL\n', currentTime);
+        fclose(logFile);
     end
 
     % 3. Run optimization if enough time has passed
-    if (currentTime - lastOptimizationTime >= optimizationInterval)
-	lastOptimizationTime = currentTime;
-	cycleCounter = floor(currentTime/optimizationInterval);
-        disp(['Running feedback optimization cycle #' num2str(cycleCounter)]); 
-    
-	% 3.1 Use WFSim to simulate current state and linearize the model
-	sol.k = sol.k + 1;
-	[sol, sys] = Make_Ax_b_hsj(Wp, sys, sol, yaw_angle, CT_prime, modelOptions);
-	[sol, sys] = Computesol(sys, sol, sol.k, modelOptions);
-	[sol, eps] = MapSolution(Wp, sol, sol.k, modelOptions);
+    if controlMode == 1 && (currentTime - lastOptimizationTime >= optimizationInterval)
+        lastOptimizationTime = currentTime;
+        cycleCounter = floor(currentTime/optimizationInterval);
+        disp(['Running feedback optimization cycle #' num2str(cycleCounter)]);
 
-	% 3.2 Extract flow field and turbine inflow speeds
-	uss = sol.u;
+        % 3.1 Use WFSim to simulate current state and linearize the model
+        sol.k = sol.k + 1;
+        [sol, sys] = Make_Ax_b_hsj(Wp, sys, sol, yaw_angle, CT_prime, modelOptions);
+        [sol, sys] = Computesol(sys, sol, sol.k, modelOptions);
+        [sol, eps] = MapSolution(Wp, sol, sol.k, modelOptions);
+
+        % 3.2 Extract flow field and turbine inflow speeds
+        uss = sol.u;
 	linear_model = struct;
-	linear_model.ss.U = zeros(nTurbs, 1);
+        linear_model.ss.U = zeros(nTurbs, 1);
 
-	for j=1:nTurbs
-	    linear_model.ss.U(j) = sum(uss(Wp.mesh.xline(j),Wp.mesh.yline{j}))/length(Wp.mesh.yline{j});
-	end
+        for j=1:nTurbs
+            linear_model.ss.U(j) = sum(uss(Wp.mesh.xline(j),Wp.mesh.yline{j}))/length(Wp.mesh.yline{j});
+        end
 
-	% Store estimated wind speeds
-	windSpeedHistory = [windSpeedHistory; linear_model.ss.U'];
-	
-	% 3.3 Linearize the model
+        % Store estimated wind speeds
+        windSpeedHistory = [windSpeedHistory; linear_model.ss.U'];
+
+        % 3.3 Linearize the model
         try
             linear_model.A = sys.A\sys.Al;
             linear_model.B = sys.A\sys.Bl;
@@ -173,35 +182,34 @@ while 1
             % 3.4 Setup measurement equations
             linear_model.Cz = zeros(nTurbs, size(sys.A,1));
             for j=1:nTurbs
-                linear_model.Cz(j,(Wp.mesh.xline(j)-3)*(Wp.mesh.Ny-2)+Wp.mesh.yline{j}(1)-1:...
-                    (Wp.mesh.xline(j)-3)*(Wp.mesh.Ny-2)+Wp.mesh.yline{j}(end)-1) = 1/length(Wp.mesh.yline{j});
+                linear_model.Cz(j,(Wp.mesh.xline(j)-3)(Wp.mesh.Ny-2)+Wp.mesh.yline{j}(1)-1:...
+                    (Wp.mesh.xline(j)-3)(Wp.mesh.Ny-2)+Wp.mesh.yline{j}(end)-1) = 1/length(Wp.mesh.yline{j});
             end
-
-            % 3.5 Setup power sensitivity matrices
+	    % 3.5 Setup power sensitivity matrices
             Rho = Wp.site.Rho;
             Drotor = Wp.turbine.Drotor;
             powerscale = Wp.turbine.powerscale;
-            Ar = pi*(0.5*Drotor)^2;
-            constant = powerscale*.5*Rho*Ar;
+            Ar = pi(0.5Drotor)^2;
+            constant = powerscale.5Rho*Ar;
 
-            linear_model.Cx = diag(3*constant*linear_model.ss.U.^2.*CT_prime.*(cos(yaw_angle*pi/180).^3));
+            linear_model.Cx = diag(3constantlinear_model.ss.U.^2.CT_prime.(cos(yaw_angle*pi/180).^3));
             linear_model.C = linear_model.Cx * linear_model.Cz;
-            linear_model.D = diag(constant*(linear_model.ss.U .* cos(yaw_angle*pi/180)).^3);
-            linear_model.DPhi = diag(-1/180*pi*3*constant*linear_model.ss.U.^3.*CT_prime.*(cos(yaw_angle*pi/180)).^2.*sin(yaw_angle*pi/180));
+            linear_model.D = diag(constant(linear_model.ss.U . cos(yaw_anglepi/180)).^3);
+            linear_model.DPhi = diag(-1/180pi3constantlinear_model.ss.U.^3.CT_prime.(cos(yaw_anglepi/180)).^2.sin(yaw_anglepi/1$
 
             % 3.6 Steady-state mapping
             steady_matrix = linear_model.C * ((eye(nx) - linear_model.A)\linear_model.B) + linear_model.D;
             steady_matrix_Phi = linear_model.C * ((eye(nx) - linear_model.A)\linear_model.BPhi) + linear_model.DPhi;
-            
+
             % 3.7 Compute gradients using SOWFA power measurements
             totalPower = sum(generatorPowerArray);  % Use SOWFA measurements
-            nabla_CT_prime = 2 * ((steady_matrix)'*ones(nTurbs,1)*(totalPower - power_ref)/power_ref^2 + mu * CT_prime);
-            nabla_yaw_angle = 2 * ((steady_matrix_Phi)'*ones(nTurbs,1)*(totalPower - power_ref)/power_ref^2 + mu_Phi * yaw_angle);
-            
+            nabla_CT_prime = 2 * ((steady_matrix)'ones(nTurbs,1)(totalPower - power_ref)/power_ref^2 + mu * CT_prime);
+            nabla_yaw_angle = 2 * ((steady_matrix_Phi)'ones(nTurbs,1)(totalPower - power_ref)/power_ref^2 + mu_Phi * yaw_angle);
+
             % 3.8 Update control variables with projected gradient descent
             CT_prime_new = min([CT_prime_max, max([CT_prime_min, CT_prime - alpha * nabla_CT_prime],[],2)],[],2);
-            yaw_angle_new = min([yaw_max, max([yaw_min, yaw_angle - alpha_Phi * nabla_yaw_angle],[],2)],[],2);
-            
+	    yaw_angle_new = min([yaw_max, max([yaw_min, yaw_angle - alpha_Phi * nabla_yaw_angle],[],2)],[],2);
+
             % 3.9 Apply changes only if significant
             CT_prime_change = norm(CT_prime_new - CT_prime) / norm(CT_prime);
             yaw_angle_change = norm(yaw_angle_new - yaw_angle) / (norm(yaw_angle) + 1e-6);
@@ -210,7 +218,7 @@ while 1
                 disp('Applying significant control updates');
                 CT_prime = CT_prime_new;
                 yaw_angle = yaw_angle_new;
-                
+
                 % Log control changes
                 logFile = fopen('controller_log.txt', 'a');
                 fprintf(logFile, 'Time: %f, Updated Controls - CT_prime=%f, Yaw=%f\n', currentTime, mean(CT_prime), mean(yaw_angle));
@@ -228,10 +236,21 @@ while 1
         if lastPowerTotal > 0
             improvement = (totalPower - lastPowerTotal)/lastPowerTotal * 100;
             powerImprovements = [powerImprovements; improvement];
-            
+
             % Enhanced logging
             disp(['Power improvement: ' num2str(improvement) '%']);
-            
+            if length(powerImprovements) >= 5
+                recentImprovements = abs(powerImprovements(end-min(4,length(powerImprovements)-1):end));
+                avgRecentImprovement = mean(recentImprovements);
+
+                if avgRecentImprovement < 0.5 && currentTime > 600
+                    disp('CONVERGENCE DETECTED: Optimization stabilized');
+                    logFile = fopen('controller_log.txt', 'a');
+                    fprintf(logFile, '=== CONVERGENCE DETECTED at time %f ===\n', currentTime);
+                    fclose(logFile);
+                end
+            end
+
             logFile = fopen('controller_log.txt', 'a');
             fprintf(logFile, 'Cycle %d, Time: %f, Power: %f, Improvement: %f%%\n', ...
                 cycleCounter, currentTime, totalPower/1e6, improvement);
@@ -243,7 +262,7 @@ while 1
     % 4. Store control history
     CTHistory = [CTHistory; CT_prime'];
     yawHistory = [yawHistory; yaw_angle'];
-    
+
     % 5. Convert CT_prime to blade pitch and generator torque
     % Initialize control outputs
     torqueArrayOut = zeros(1, nTurbs);
@@ -255,23 +274,22 @@ while 1
         % Using CT_prime = 4a/(1-a)
         % Solving for a: a = CT_prime/(4 + CT_prime)
         a = CT_prime(i)/(4 + CT_prime(i));
-        
+
         % 5.2 All turbines are in Region 2 (8 m/s is below rated)
         % Set pitch to zero for maximum aerodynamic efficiency
         pitchAngleArrayOut(i) = 0.0;
-        
+
         % 5.3 Get the k-scaling factor from your calibrated formula
-        % K/K_opt = 24.6850*a^2 - 21.3041*a + 5.1988
-        kScaling = 24.6850*a^2 - 21.3041*a + 5.1988;
-        
+        % K/K_opt = 24.6850a^2 - 21.3041a + 5.1988
+        kScaling = 24.6850a^2 - 21.3041a + 5.1988;
+
         % Constrain scaling within reasonable limits
         kScaling = max(0.3, min(3.0, kScaling));
-        
+
         % 5.4 Apply torque = k*omega^2 control law with scaled k
-        rotorSpeedRadSec = rotorSpeedArray(i) * 2 * pi /60; % Convert rpm to rad/s
         kFactor = Kopt * kScaling;
-        torqueArrayOut(i) = kFactor * rotorSpeedRadSec^2;
-        
+        torqueArrayOut(i) = kFactor * rotorSpeedArray(i)^2;
+
         % 5.5 Log for debug (only for first turbine, occasionally)
         if mod(counter, 100) == 0 && i == 1
             disp(['Turbine ' num2str(i) ': CT_prime=' num2str(CT_prime(i)) ...
@@ -283,24 +301,24 @@ while 1
 
     % 6. Create updated control signal string for SOWFA
     dataSend = setupZmqSignal(torqueArrayOut, yawAngleArrayOut, pitchAngleArrayOut);
-    
+
     % 7. Send control actions back to SOWFA
     try
         zmqServer.send(dataSend);
     catch e
-        disp(['Error sending data: ' e.message]);
+    disp(['Error sending data: ' e.message]);
         break;
     end
-    
+
     % 8. Save control/power data periodically
     if mod(counter, 50) == 0
         try
-            save('WFSim_control_data.mat', 'powerHistory', 'CTHistory', 'yawHistory', 'windSpeedHistory', 'currentTime', 'powerImprovements');
+            save('WFSim_control_data.mat', 'powerHistory', 'CTHistory', 'yawHistory', 'windSpeedHistory', 'currentTime', 'powerImproveme$
         catch
             disp('Warning: Unable to save control data');
         end
     end
-    
+
     counter = counter + 1;
 end
 
@@ -320,3 +338,4 @@ function [dataOut] = setupZmqSignal(torqueSignals, yawAngles, pitchAngles)
         dataOut = [dataOut torqueSignals(i) yawAngles(i) pitchAngles(i)];
     end
 end
+
